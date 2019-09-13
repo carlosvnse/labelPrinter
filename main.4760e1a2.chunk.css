@@ -1,0 +1,75 @@
+*{box-sizing:border-box}
+body,html{margin:0;padding:0}
+body{color:#333;font-family:Trebuchet MS,Helvetica,sans-serif;font-size:14px}
+::-webkit-input-placeholder{color:#cacaca}
+::-moz-placeholder{color:#cacaca}
+:-ms-input-placeholder{color:#cacaca}
+:-moz-placeholder{color:#cacaca}
+.img-responsive{display:block;height:auto;max-width:100%}
+.hidden{display:none!important;visibility:hidden!important}
+#App{flex-wrap:wrap;height:100vh;min-height:750px;min-width:1100px;position:relative;width:100vw}
+#App,#Main{display:flex}
+#Main{align-items:center;flex-direction:column;height:calc(100% - 80px);justify-content:center;padding-left:15px;padding-right:15px;width:100%}
+.Alert{border:1px solid transparent;border-radius:.25rem;margin-bottom:.5rem;margin-top:.5rem;padding:.75rem 1.25rem;text-align:center}
+.Alert.Alert-Error{background-color:#ffd2d2;border-color:#ecbbbb;color:#af4b4b}
+.Alert.Alert-No-Visible{display:none!important;visibility:hidden!important}
+.InputText{display:inline-block;margin:0 5px}
+.InputText label{display:block;margin-bottom:.3em}
+.InputText input{width:100%}
+.ImportButton{display:inline-block;margin:0 5px}
+.Button{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-color:#020252;border:none;border-radius:2px;box-shadow:0 2px 2px 0 rgba(0,0,0,.14),0 3px 1px -2px rgba(0,0,0,.12),0 1px 5px 0 rgba(0,0,0,.2);color:#fff;cursor:pointer;font-size:14px;height:45px;line-height:45px;margin:0 5px;outline:none;overflow:hidden;padding:0 15px;position:relative;text-align:center;-webkit-transition:background-color 375ms;transition:background-color 375ms}
+#Navigation{align-items:center;border-bottom:2px solid #333;display:flex;height:80px;justify-content:space-between;padding-left:15px;padding-right:15px;width:100%}
+#Navigation .logo{max-width:195px}
+#Navigation .buttons{align-items:center;display:flex}
+#ResultList{background-color:#fff;border:1px solid #cacaca;bottom:auto;left:0;max-height:15em;overflow:hidden;overflow-y:scroll;position:absolute;width:100%}
+.ResultItem{align-items:center;background-color:initial;cursor:pointer;display:flex;padding:1%;-webkit-transition:background-color 375ms;transition:background-color 375ms}
+.ResultItem.hover,.ResultItem:hover{background-color:#cacaca}
+.ResultItem .Image{width:10%}
+.ResultItem .Info{font-style:italic;font-size:.8em;padding-left:1%;width:85%}
+#Searcher{max-width:580px;margin-bottom:2%;position:relative;width:100%;z-index:1}
+#Searcher h1{font-size:3em;margin-top:0;text-align:center;width:100%}
+#Searcher .input-container{position:relative}
+#Searcher input{border:1px solid #cacaca;display:inline;font-family:inherit;font-size:1.5em;padding:.5em;outline:none;width:100%}
+#Searcher select{border:1px solid #cacaca;display:inline;font-family:inherit;font-size:1.5em;padding:.5em;outline:none;width:100%}
+#Searcher.loading .input-container:after{background:url(/assets/images/loader.svg);background-size:2.5em 2.5em;bottom:.4em;content:"";display:block;height:2.5em;position:absolute;right:.4em;width:2.5em}
+@font-face{font-family:LibreBarcode39-Regular;src:url(/assets/fonts/libre_barcode_39/LibreBarcode39-Regular.ttf)}
+@font-face{font-family:LibreBarcode128-Regular;src:url(/assets/fonts/libre_barcode_128/LibreBarcode128-Regular.ttf)}
+#lista{align-items:center;display:none;font-size:2.1em;height:368px;margin-bottom:2%;max-width:580px;padding:.35em;width:100%;}
+.Preview{align-items:center;border:1px solid #000;border-radius:1em;display:none;font-size:2.1em;height:368px;margin-bottom:2%;max-width:580px;padding:.35em;width:100%;}
+.Preview img{display:block;height:auto;max-width:100%}
+.Preview .info{margin-bottom:.8em}
+.Preview .part-number{font-weight:700}
+.Preview .name{line-height:100%}
+.Preview .ce-logo{align-items:center;display:flex;margin-bottom:.15em}
+.Preview .ce-logo .logo{flex-shrink:0;width:1.25em}
+.Preview .ce-logo .logo svg{display:block;height:auto;max-width:100%}
+.Preview .ce-logo div:nth-child(2){font-size:.6em;padding-left:.8em}
+.Preview .barcode{text-align:center}
+.Preview .barcode svg{display:block;height:auto;margin:0 auto;width:75%}
+.Preview .side:first-child{flex-shrink:0;width:70%}
+.Preview .side:nth-child(2){align-items:center;border-left:2px solid #000;display:flex;height:90%;justify-content:center;width:30%}
+.Preview .side:nth-child(2) .barcode{margin-top:85%;left:2%;position:relative;-webkit-transform:rotate(-90deg);transform:rotate(-90deg)}
+.Preview .side:nth-child(2) .barcode svg{width:185%}
+.PreviewActions .Button{font-size:16px;height:55px;line-height:55px}
+
+#fileName {
+    width: 0.1px;
+    height: 0.1px;
+    opacity: 0;
+    overflow: hidden;
+    position: absolute;
+    z-index: -1;
+    visibility: hidden;
+}
+#formato {
+    visibility: hidden;
+    display:flex;
+}
+
+.etiqueta {
+    width:300;
+    height:300;  
+    top:0;
+    left:0; 
+}
+/*# sourceMappingURL=main.4760e1a2.chunk.css.map */

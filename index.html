@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no">
+    <meta name="theme-color" content="#000000">
+    <link rel="shortcut icon" href="icon.ico">
+    <title>Label Printer</title>
+    <meta name="description" content="page-description">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#f1f1f1">
+    <meta name="msapplication-navbutton-color" content="#f1f1f1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link href="main.4760e1a2.chunk.css" rel="stylesheet">
+    <style>
+
+    </style>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+    <script language = "javascript" src = "js/utils.js"></script>
+    <script language = "javascript" src = "js/JsBarcode.all.min.js"></script>
+    
+    <script language = "javascript">
+        window.$ = window.jQuery = require('jquery');
+        var state = null;
+        var storage = null;
+        var STORAGE_PRODUCTS_KEY = "LABEL_PRINTER_PRODUCTS";
+        var STORAGE_LOG_KEY = "LABEL_PRINTER_LOG";
+
+        $( document ).ready(function() {
+            console.log( "ready!" );
+            state = new State();
+            storage = new Storage();
+            var datos = storage.load(STORAGE_PRODUCTS_KEY);
+            if(datos){
+                //alert("datos: " + datos + ", " + datos.length);
+                if(datos.length > 0){
+                    state.products = datos;
+                    state.noProducts = false;
+                }
+            }
+        });
+        function State(){
+            this.products = [];
+            this.noProducts = true;
+            this.selectedProduct = null;
+            this.previewData = null;
+            this.seleccion = [];
+            this.consecutive = 0;
+        }
+        function abrirVisordeArchivos(){
+            var ele = document.getElementById("fileName");
+            document.getElementById("fileName").click();
+        }
+        function eliminarProductos(ev) {
+            storage.remove(STORAGE_PRODUCTS_KEY);
+            state.noProducts= true; 
+            state.products= [];
+            state.selectedProduct= null;
+        }
+        function leerProductos(event){
+            var input = event.target;
+
+            var reader = new FileReader();
+            reader.onload = function(){
+                var data = reader.result;
+                if (data) {
+                    var  products = csvToJson(data);
+
+                    if (products.length) {
+                        // Set products state.
+                        state.products = products;
+
+                        // Load into storage.
+                        storage.save(STORAGE_PRODUCTS_KEY, products);
+                    }
+
+                    state.noProducts = !products.length;
+                }
+
+                state.noProducts=  !data ;
+                console.log(reader.result.substring(0, 200));
+            };
+            reader.readAsText(input.files[0]);
+        }
+        function presentarProductos(event){
+            value = event.target.value;
+            state.seleccion = this.state.products.filter(product => {
+                let part = product["Part Number"];
+                let desc = product["Up to 80 Character Manufacturer Description"];
+                let code = product["UPC (GTIN) Code"];
+
+                return new RegExp(value, "i").test(part)
+                        || new RegExp(value, "i").test(desc)
+                        || new RegExp(value, "i").test(code);
+            })
+            var htmlText = "<div id=\"ResultList\">";
+                    
+                for(var i = 0; i < state.seleccion.length; i++){
+                    producto = state.seleccion[i];
+                    let part = producto["Part Number"];
+                    let code = producto["UPC (GTIN) Code"];
+                    let desc = producto["Up to 80 Character Manufacturer Description"];
+                    htmlText += "<div class=\"ResultItem\" onclick=\"seleccionarItem()\" onmouseout = \"desresaltarItem()\" onmouseover = \"resaltarItem()\" key = \"" + part + "\">";
+                    htmlText += "    <div class=\"Image\">";
+                    htmlText += "       <img class=\"img-responsive\" src = \"no-photo.jpg\" alt=\"\"/>";
+                    htmlText += "    </div>";
+                    htmlText += "   <div class=\"Info\">";
+                    htmlText += "        <div class=\"PartNumber\">Numero de Parte: " + part + "</div>";
+                    htmlText += "        <div class=\"Code\">Código: " + code + "</div>";
+                    htmlText += "        <div class=\"Description\">Descripción: " + desc + "</div>";
+                    htmlText += "    </div>";
+                    htmlText += "</div>";
+                }
+                $("#lista").append(htmlText);
+                document.getElementById("lista").style.display = "flex";
+
+            htmlText += "</div>";
+            document.getElementById("formato").style.display  = "none";
+            document.getElementById("formato").style.visibility = "hidden";
+            generaEtiquetas();
+            
+        }
+        function generatePLCCode() {
+            // The code will be formed by:
+            // MEX_CODE + Year (2 digits) + Julian day + part code + consecutive number
+            const MEX_CODE = (2).toString();
+
+            // Get year in two digits.
+            let date = new Date();
+
+            let fullYear = date.getFullYear().toString();
+            let year = fullYear.substr(fullYear.length - 2, fullYear.length);
+
+            // Get julian day.
+            let julianDay = getJulianDay().toString();
+
+            // Get consecutive number
+            let consecutive = ("0000" + this.state.consecutive).slice(-5);
+
+            // Return generated code
+            return MEX_CODE + year + julianDay + consecutive;
+        }
+        function generaDatosParaEtiquetas(){
+            let part = state.selectedProduct["Part Number"];
+            let name = state.selectedProduct["Up to 80 Character Manufacturer Description"];
+            let upcCode = state.selectedProduct["UPC (GTIN) Code"];
+
+                state.selectedProduct = state.selectedProduct,
+                state.previewData = {
+                    partNumber: part,
+                    name: name.replace(/^"|"$/g, ""),
+                    plcCode: this.generatePLCCode(),
+                    upcCode: upcCode
+                }
+            
+        }
+        function seleccionarPanel(panel){
+            var el = document.getElementById("etiquetas");
+            var childs = el.childNodes;
+            for(var i = 0; i < childs.length; i++){
+                try{
+                    if(childs[i].getAttribute("id") == panel){
+                        childs[i].style.display = "flex";
+                    }else{
+                        childs[i].style.display = "none";
+                    }
+                }catch(error){
+                }
+            }
+        }
+
+        
+        function generaEtiquetas(){
+            if (this.state.selectedProduct) {
+                generaDatosParaEtiquetas();
+                let previewData = this.state.previewData;
+                let el = document.getElementById("formato1");
+                let template = "";
+                template += "        <div class=\"side\">";
+                template += "            <div class=\"info\">";
+                template += "                <div class=\"part-number\">" + previewData.partNumber + "</div>";
+                template += "                <div class=\"name\">" + previewData.name + "</div>";
+                template += "            </div>";
+                template += "            <div class=\"ce-logo\">";
+                template += "                <div class=\"logo\"><img src=\"ce-logo.png\" alt=\"Conformidad Europea\"/></div>";
+                template += "                <div>Assembled in Mexico</div>";
+                template += "            </div>";
+                template += "            <div class=\"barcode\">";
+                template += "                <svg id=\"t-plcCode\" />";
+                template += "            </div>";
+                template += "        </div>";
+                template += "        <div class=\"side\">";
+                template += "            <div class=\"barcode\">";
+                template += "                <svg id=\"t-upcCode\" />";
+                template += "            </div>";
+                template += "        </div>";
+                
+
+                
+                //el.style.display = 'none';
+                //el.style.visibility = 'hidden';
+                el.innerHTML = template;
+                
+                el = document.getElementById("formato2");
+                
+                template = "";
+                template += "        <div class=\"side\">";
+                template += "            <div class=\"info\">";
+                template += "                <div class=\"part-number\">" + previewData.partNumber + "</div>";
+                template += "                <div class=\"name\">" + previewData.name + "</div>";
+                template += "            </div>";
+                template += "            <div class=\"barcode\">";
+                template += "                <svg id=\"t-plcCode\" />";
+                template += "            </div>";
+                template += "            <div class=\"ce-logo\">";
+                template += "                <div class=\"logo\"><img src=\"ce-logo.png\" alt=\"Conformidad Europea\"/></div>";
+                template += "                <div>Assembled in Mexico</div>";
+                template += "            </div>";
+                template += "        </div>";
+                template += "        <div class=\"side\">";
+                template += "            <div class=\"barcode\">";
+                template += "                <svg id=\"t-upcCode\" />";
+                template += "            </div>";
+                template += "        </div>";
+                el.innerHTML = template;
+                
+
+                el = document.getElementById("formato3");
+                
+                template = "";
+                template += "        <div class=\"side\">";
+                template += "            <div class=\"info\">";
+                template += "                <div class=\"part-number\">" + previewData.partNumber + "</div>";
+                template += "                <div class=\"name\">" + previewData.name + "</div>";
+                template += "            </div>";
+                template += "            <div class=\"ce-logo\">";
+                template += "                <div class=\"logo\"><img src=\"ce-logo.png\" alt=\"Conformidad Europea\"/></div>";
+                template += "                <div>Assembled in Mexico</div>";
+                template += "            </div>";
+                template += "            <div class=\"barcode\">";
+                template += "                <svg id=\"t-plcCode\" />";
+                template += "            </div>";
+                template += "        </div>";
+                template += "        <div class=\"side\">";
+                template += "            <div class=\"barcode\">";
+                template += "                <svg id=\"t-upcCode\" />";
+                template += "            </div>";
+                template += "        </div>";
+                el.innerHTML = template;
+                
+                
+                el = document.getElementById("formato4");
+                
+                template = "";
+                template += "        <div class=\"side\">";
+                template += "            <div class=\"info\">";
+                template += "                <div class=\"part-number\">" + previewData.partNumber + "</div>";
+                template += "                <div class=\"name\">" + previewData.name + "</div>";
+                template += "            </div>";
+                template += "            <div class=\"ce-logo\">";
+                template += "                <div class=\"logo\"><img src=\"ce-logo.png\" alt=\"Conformidad Europea\"/></div>";
+                template += "                <div>Assembled in Mexico</div>";
+                template += "            </div>";
+                template += "            <div class=\"barcode\">";
+                template += "                <svg id=\"t-plcCode\" />";
+                template += "            </div>";
+                template += "        </div>";
+                template += "        <div class=\"side\">";
+                template += "            <div class=\"barcode\">";
+                template += "                <svg id=\"t-upcCode\" />";
+                template += "            </div>";
+                template += "        </div>";
+                el.innerHTML = template;
+                //document.body.appendChild(el);
+                
+                JsBarcode("#t-plcCode", previewData.plcCode, {
+                    background: "transparent",
+                    fontSize: 23,
+                    fontOptions: "bold",
+                    height: 70
+                });
+
+                JsBarcode("#t-upcCode", previewData.upcCode, {
+                    background: "transparent",
+                    format: "upc",
+                    fontSize: 23,
+                    fontOptions: "bold",
+                    height: 70
+                });
+                
+                console.log('printing...');
+                // console.log(el.innerHTML);
+
+                // Storing item in log.
+                let log = storage.load(STORAGE_LOG_KEY);
+
+                if (!log || !(log instanceof Array)) {
+                    log = [];
+                }
+
+                log.push({
+                    "datetime": getDateUTCFormat(),
+                    "plccode": this.plcCode,
+                    "partnumber": this.state.previewData.partNumber,
+                    "upc": this.state.previewData.upcCode,
+                    "name": this.state.previewData.name
+                });
+                storage.save(STORAGE_LOG_KEY, log);
+                console.log('storing %o...', log);
+
+                document.getElementById("formato1").style.display = "flex";
+
+                /*setTimeout(() => {
+                    this.ipcRenderer.send("print", el.innerHTML);
+                    this.plcCode = "";
+                    this.searcherRef.current.inputRef.current.focus();
+
+                    setTimeout(() => { el.parentNode.removeChild(el); }, 500);
+                }, 500);
+
+                // Increment on print.
+                this.setState(prevState => ({
+                    consecutive: (parseInt(prevState.consecutive) + 1) + ""
+                }));*/
+            }
+        }
+        function seleccionarItem(){
+            var elemento = event.target;
+            while(!elemento.classList.contains("ResultItem") ){
+                elemento = elemento.parentNode;
+                if(elemento.parentNode == null){
+                    break;
+                }
+            }
+            if(elemento != null){
+                var key = elemento.getAttribute("key");
+                var productoSeleccionado = null;
+                for(var i = 0; i < state.products.length; i++ ){
+                    if(state.products[i]["Part Number"] == key){
+                        productoSeleccionado = state.products[i];
+                        break;
+                    }
+                }
+                state.selectedProduct = productoSeleccionado;
+            }
+            elemento = document.getElementById("ResultList");
+            if(elemento != null){
+                //alert(elemento.outerHTML);
+                if(elemento.parentNode != null){
+                    //alert("parentNode: " + elemento.parentNode.outerHTML);
+                    elemento.parentNode.removeChild(elemento);
+                }
+            }
+            document.getElementById("productName").value = "";
+            document.getElementById("formato").style.display  = "flex";
+            document.getElementById("formato").style.visibility = "visible";
+
+            generaEtiquetas();
+            event.cancelBubble = true;event.cancelBubble = true;
+        }
+        function resaltarItem(){
+            var elemento = event.target;
+            //alert("elemento: " + elemento.outerHTML);
+            while(!elemento.classList.contains("ResultItem") ){
+                elemento = elemento.parentNode;
+                //alert("elemento: " + elemento.outerHTML);
+                if(elemento.parentNode == null){
+                    break;
+                }
+            }
+            if(elemento != null){
+                elemento.style.backgroundColor = "#dddddd";
+                elemento.style.fontWeight = "bolder";
+                
+            }
+            event.cancelBubble = true;
+        }
+        function desresaltarItem(){
+            var elemento = event.target;
+            while(!elemento.classList.contains("ResultItem") ){
+                elemento = elemento.parentNode;
+                if(elemento.parentNode == null){
+                    break;
+                }
+            }
+            if(elemento != null){
+                elemento.style.backgroundColor = "#ffffff";
+                elemento.style.fontWeight = "normal";
+            }
+            event.cancelBubble = true;
+        }
+        function seleccionaEtiqueta(){
+           var formato = document.getElementById("formato").value;
+           seleccionarPanel(formato);
+        }
+    </script>
+</head>
+
+<body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root" class = "container-fluid">
+        <div id="App">
+            <nav id="Navigation">
+                <div class="logo">
+                    <img class="img-responsive" src="logo-trucklite.86bdda16.jpg" alt="TruckLite" />
+                </div>
+                <div class="buttons">
+                    <form>
+                        <input type="file" id = "fileName" onchange = "leerProductos(event)" />
+                    </form>
+                    <div class="ImportButton" onclick = "abrirVisordeArchivos()">
+                        <button class="Button">Importar Productos</button>
+                    </div>
+                    <button class="Button" onclick = "eliminarProductos()">Eliminar Productos</button>
+                    <button class="Button">Generar Log</button>
+                </div>
+            </nav>
+            <main id="Main">
+                <div id = "fileOutput"></div>
+                <div class="" id="Searcher">
+                    <h1>Buscar Producto</h1>
+                    <div class="input-container">
+                        <input  autocomplete="off" 
+                                name="product-name" 
+                                id = "productName"
+                                placeholder="Producto (Código, Nombre o Numero de parte)" 
+                                type="text" 
+                                value="" 
+                               
+                                onkeyup = "presentarProductos(event)" />
+                        <select id = "formato" onchange = "seleccionaEtiqueta()">
+                            <option value = "formato1">Formato 1</option>
+                            <option value = "formato2">Formato 2</option>
+                            <option value = "formato3">Formato 3</option>
+                            <option value = "formato4">Formato 4</option>
+                        </select>
+                        <div id = "etiquetas" style = "width:100%;height:368px;">
+                            <div id = "formato1" class = "Preview" style = "background-color:aquamarine; ">&nbsp;</div>
+                            <div id = "formato2" class = "Preview" style = "background-color:white;">&nbsp;</div>
+                            <div id = "formato3" class = "Preview" style = "background-color:red;">&nbsp;</div>
+                            <div id = "formato4" class = "Preview" style = "background-color:gray;">&nbsp;</div>
+                            <div id = "lista" class = "listProducts" style = "">&nbsp;</div>
+                        </div>
+
+                    </div>
+                </div>
+                <div class="Alert Alert-Error Alert-No-Visible">Tipo de archivo inválido, por favor carga un archivo con extensión CSV.</div>
+                <div class="Alert Alert-Error Alert-No-Visible">El archivo está vacío. Por favor carga un nuevo archivo.</div>
+                <div class="Alert Alert-Error Alert-No-Visible">No hay productos cargados.</div>
+                <div class="Alert Alert-Error Alert-No-Visible">No se encontró ningún producto.</div>
+                <div class="Alert Alert-Error Alert-No-Visible">No se encuentra el PLC</div>
+            </main>
+        </div>
+    </div>
+    <div style = "display:none;">
+        <div id="error"></div>
+        <div id="ports"></div>
+    </div>>
+    
+</body>
+
+<script src="./renderer.js"></script>
+
+</html>
