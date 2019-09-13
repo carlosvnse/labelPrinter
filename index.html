@@ -45,10 +45,31 @@
             this.products = [];
             this.noProducts = true;
             this.selectedProduct = null;
-            this.previewData = null;
+            this.previewData = {};
             this.seleccion = [];
-            this.consecutive = 0;
+            this.consecutive = 1;
+
+            this.alerts = [];
+            this.invalidFile = false;
+            this.fileEmpty = false;
+            this.noProductFound = false;
+            this.noPLCFound = false;
+
         }
+
+        this.state = {
+            alerts: [],
+            noProducts: false,
+            invalidFile: false,
+            fileEmpty: false,
+            noProductFound: false,
+            noPLCFound: false,
+
+            consecutive: 1,
+            products: [],
+            selectedProduct: null,
+            previewData: { }
+        };
         function abrirVisordeArchivos(){
             var ele = document.getElementById("fileName");
             document.getElementById("fileName").click();
@@ -142,6 +163,13 @@
             // Return generated code
             return MEX_CODE + year + julianDay + consecutive;
         }
+        function generateDateCode(){
+            let date = new Date();
+            let dia = ("00" + date.getDate()).slice(-2);
+            let mes = ("00" + date.getMonth()).slice(-2);
+            let anio = "" + date.getFullYear();
+            return dia + mes + anio + "R"
+        }
         function generaDatosParaEtiquetas(){
             let part = state.selectedProduct["Part Number"];
             let name = state.selectedProduct["Up to 80 Character Manufacturer Description"];
@@ -152,7 +180,8 @@
                     partNumber: part,
                     name: name.replace(/^"|"$/g, ""),
                     plcCode: this.generatePLCCode(),
-                    upcCode: upcCode
+                    upcCode: upcCode,
+                    dateCode: generateDateCode()
                 }
             
         }
@@ -196,6 +225,29 @@
                 template += "                <svg id=\"t-upcCode\" />";
                 template += "            </div>";
                 template += "        </div>";
+                el.innerHTML = template;
+                
+                el = document.getElementById("formato2");
+                template = "";
+                template += "        <div class=\"side\">";
+                template += "            <div class=\"info\" style = \"margin-bottom:.8em>\">";
+                template += "                <div class=\"part-number\">" + previewData.partNumber + "</div>";
+                template += "                <div class=\"name\">" + previewData.name + "</div>";
+                template += "            </div>";
+                template += "            <div class=\"barcode\">";
+                template += "                <svg id=\"formato2-t-plcCode\" />";
+                template += "            </div>";
+                template += "            <div style = \"text-align:center;vertical-align:top;font-size:small;color:black;\"><span>Country of origin:USA</span></div>";
+                template += "            <div class = \"ce-logo\" style = \"vertical-align:top;font-size:xx-large;color:black;\">";
+                template += "                <div  class = \"logo\" style = \"vertical-align:top;color:black;\"><img src=\"ce-logo.png\" alt=\"Conformidad Europea\"/></div>";
+                template += "            </div>";
+                template += "            <div style = \"color:#000000;text-align:right;width:100%;\"><span>" + previewData.dateCode + "</div>";
+                template += "        </div>";
+                template += "        <div class=\"side\">";
+                template += "            <div class=\"barcode\">";
+                template += "                <svg id=\"formato2-t-upcCode\" />";
+                template += "            </div>";
+                template += "        </div>";
                 
 
                 
@@ -203,76 +255,34 @@
                 //el.style.visibility = 'hidden';
                 el.innerHTML = template;
                 
-                el = document.getElementById("formato2");
-                
-                template = "";
-                template += "        <div class=\"side\">";
-                template += "            <div class=\"info\">";
-                template += "                <div class=\"part-number\">" + previewData.partNumber + "</div>";
-                template += "                <div class=\"name\">" + previewData.name + "</div>";
-                template += "            </div>";
-                template += "            <div class=\"barcode\">";
-                template += "                <svg id=\"t-plcCode\" />";
-                template += "            </div>";
-                template += "            <div class=\"ce-logo\">";
-                template += "                <div class=\"logo\"><img src=\"ce-logo.png\" alt=\"Conformidad Europea\"/></div>";
-                template += "                <div>Assembled in Mexico</div>";
-                template += "            </div>";
-                template += "        </div>";
-                template += "        <div class=\"side\">";
-                template += "            <div class=\"barcode\">";
-                template += "                <svg id=\"t-upcCode\" />";
-                template += "            </div>";
-                template += "        </div>";
-                el.innerHTML = template;
-                
-
                 el = document.getElementById("formato3");
                 
                 template = "";
                 template += "        <div class=\"side\">";
-                template += "            <div class=\"info\">";
+                template += "            <div class=\"info\" style = \"margin-bottom:.2em\">";
                 template += "                <div class=\"part-number\">" + previewData.partNumber + "</div>";
                 template += "                <div class=\"name\">" + previewData.name + "</div>";
                 template += "            </div>";
-                template += "            <div class=\"ce-logo\">";
-                template += "                <div class=\"logo\"><img src=\"ce-logo.png\" alt=\"Conformidad Europea\"/></div>";
-                template += "                <div>Assembled in Mexico</div>";
+                template += "            <div class=\"barcode\">";
+                template += "                <svg id=\"formato3-t-plcCode\" />";
+                template += "            </div>";
+                template += "            <div style = \"text-align:center;vertical-align:top;font-size:small;color:black;\"><span>Country of origin:USA</span></div>";
+                template += "            <div class = \"ce-logo\" style = \"vertical-align:top;font-size:xx-large;color:black;\">";
+                template += "                <div  class = \"logo\" style = \"vertical-align:top;color:black;\"><img src=\"ce-logo.png\" alt=\"Conformidad Europea\"/></div>";
                 template += "            </div>";
                 template += "            <div class=\"barcode\">";
-                template += "                <svg id=\"t-plcCode\" />";
+                template += "                <svg id=\"formato3-t-plcCode1\" />";
                 template += "            </div>";
                 template += "        </div>";
                 template += "        <div class=\"side\">";
                 template += "            <div class=\"barcode\">";
-                template += "                <svg id=\"t-upcCode\" />";
+                template += "                <svg id=\"formato3-t-upcCode\" />";
                 template += "            </div>";
                 template += "        </div>";
                 el.innerHTML = template;
                 
                 
-                el = document.getElementById("formato4");
                 
-                template = "";
-                template += "        <div class=\"side\">";
-                template += "            <div class=\"info\">";
-                template += "                <div class=\"part-number\">" + previewData.partNumber + "</div>";
-                template += "                <div class=\"name\">" + previewData.name + "</div>";
-                template += "            </div>";
-                template += "            <div class=\"ce-logo\">";
-                template += "                <div class=\"logo\"><img src=\"ce-logo.png\" alt=\"Conformidad Europea\"/></div>";
-                template += "                <div>Assembled in Mexico</div>";
-                template += "            </div>";
-                template += "            <div class=\"barcode\">";
-                template += "                <svg id=\"t-plcCode\" />";
-                template += "            </div>";
-                template += "        </div>";
-                template += "        <div class=\"side\">";
-                template += "            <div class=\"barcode\">";
-                template += "                <svg id=\"t-upcCode\" />";
-                template += "            </div>";
-                template += "        </div>";
-                el.innerHTML = template;
                 //document.body.appendChild(el);
                 
                 JsBarcode("#t-plcCode", previewData.plcCode, {
@@ -281,8 +291,44 @@
                     fontOptions: "bold",
                     height: 70
                 });
+                JsBarcode("#formato2-t-plcCode", previewData.plcCode, {
+                    background: "transparent",
+                    fontSize: 23,
+                    fontOptions: "bold",
+                    height: 70,
+                    displayValue: false
+                });
+                JsBarcode("#formato3-t-plcCode", previewData.plcCode, {
+                    background: "transparent",
+                    fontSize: 23,
+                    fontOptions: "bold",
+                    height: 50,
+                    displayValue: false
+                });
+                JsBarcode("#formato3-t-plcCode1", previewData.plcCode, {
+                    background: "transparent",
+                    fontSize: 23,
+                    fontOptions: "bold",
+                    height: 50
+                });
+
+
 
                 JsBarcode("#t-upcCode", previewData.upcCode, {
+                    background: "transparent",
+                    format: "upc",
+                    fontSize: 23,
+                    fontOptions: "bold",
+                    height: 70,
+                });
+                JsBarcode("#formato2-t-upcCode", previewData.upcCode, {
+                    background: "transparent",
+                    format: "upc",
+                    fontSize: 23,
+                    fontOptions: "bold",
+                    height: 70
+                });
+                JsBarcode("#formato3-t-upcCode", previewData.upcCode, {
                     background: "transparent",
                     format: "upc",
                     fontSize: 23,
@@ -434,13 +480,11 @@
                             <option value = "formato1">Formato 1</option>
                             <option value = "formato2">Formato 2</option>
                             <option value = "formato3">Formato 3</option>
-                            <option value = "formato4">Formato 4</option>
                         </select>
                         <div id = "etiquetas" style = "width:100%;height:368px;">
-                            <div id = "formato1" class = "Preview" style = "background-color:aquamarine; ">&nbsp;</div>
-                            <div id = "formato2" class = "Preview" style = "background-color:white;">&nbsp;</div>
-                            <div id = "formato3" class = "Preview" style = "background-color:red;">&nbsp;</div>
-                            <div id = "formato4" class = "Preview" style = "background-color:gray;">&nbsp;</div>
+                            <div id = "formato1" class = "Preview" style = ""></div>
+                            <div id = "formato2" class = "Preview" style = ""></div>
+                            <div id = "formato3" class = "Preview" style = ""></div>
                             <div id = "lista" class = "listProducts" style = "">&nbsp;</div>
                         </div>
 
