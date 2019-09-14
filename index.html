@@ -27,12 +27,18 @@
         var storage = null;
         var STORAGE_PRODUCTS_KEY = "LABEL_PRINTER_PRODUCTS";
         var STORAGE_LOG_KEY = "LABEL_PRINTER_LOG";
+        var STORAGE_CONS_KEY = "CONSECUTIVOS";
 
         $( document ).ready(function() {
             console.log( "ready!" );
             state = new State();
             storage = new Storage();
             var datos = storage.load(STORAGE_PRODUCTS_KEY);
+            var consecutivos = storage.load(STORAGE_CONS_KEY);
+            if(consecutivos == undefined || consecutivos == null){
+                consecutivos = {};
+                storage.save(STORAGE_CONS_KEY, consecutivos)
+            }
             if(datos){
                 //alert("datos: " + datos + ", " + datos.length);
                 if(datos.length > 0){
@@ -118,29 +124,30 @@
             })
             var htmlText = "<div id=\"ResultList\">";
                     
-                for(var i = 0; i < state.seleccion.length; i++){
-                    producto = state.seleccion[i];
-                    let part = producto["Part Number"];
-                    let code = producto["UPC (GTIN) Code"];
-                    let desc = producto["Up to 80 Character Manufacturer Description"];
-                    htmlText += "<div class=\"ResultItem\" onclick=\"seleccionarItem()\" onmouseout = \"desresaltarItem()\" onmouseover = \"resaltarItem()\" key = \"" + part + "\">";
-                    htmlText += "    <div class=\"Image\">";
-                    htmlText += "       <img class=\"img-responsive\" src = \"no-photo.jpg\" alt=\"\"/>";
-                    htmlText += "    </div>";
-                    htmlText += "   <div class=\"Info\">";
-                    htmlText += "        <div class=\"PartNumber\">Numero de Parte: " + part + "</div>";
-                    htmlText += "        <div class=\"Code\">Código: " + code + "</div>";
-                    htmlText += "        <div class=\"Description\">Descripción: " + desc + "</div>";
-                    htmlText += "    </div>";
-                    htmlText += "</div>";
-                }
-                $("#lista").append(htmlText);
-                document.getElementById("lista").style.display = "flex";
-
+            for(var i = 0; i < state.seleccion.length; i++){
+                producto = state.seleccion[i];
+                let part = producto["Part Number"];
+                let code = producto["UPC (GTIN) Code"];
+                let desc = producto["Up to 80 Character Manufacturer Description"];
+                htmlText += "<div class=\"ResultItem\" onclick=\"seleccionarItem()\" onmouseout = \"desresaltarItem()\" onmouseover = \"resaltarItem()\" key = \"" + part + "\">";
+                htmlText += "    <div class=\"Image\">";
+                htmlText += "       <img class=\"img-responsive\" src = \"no-photo.jpg\" alt=\"\"/>";
+                htmlText += "    </div>";
+                htmlText += "   <div class=\"Info\">";
+                htmlText += "        <div class=\"PartNumber\">Numero de Parte: " + part + "</div>";
+                htmlText += "        <div class=\"Code\">Código: " + code + "</div>";
+                htmlText += "        <div class=\"Description\">Descripción: " + desc + "</div>";
+                htmlText += "    </div>";
+                htmlText += "</div>";
+            }
             htmlText += "</div>";
+            $("#lista").html(htmlText);
+            seleccionarPanel("lista");
+            /*document.getElementById("lista").style.display = "flex";
+
             document.getElementById("formato").style.display  = "none";
             document.getElementById("formato").style.visibility = "hidden";
-            generaEtiquetas();
+            generaEtiquetas();*/
             
         }
         function generatePLCCode() {
@@ -174,16 +181,23 @@
             let part = state.selectedProduct["Part Number"];
             let name = state.selectedProduct["Up to 80 Character Manufacturer Description"];
             let upcCode = state.selectedProduct["UPC (GTIN) Code"];
+            let consecutivos = storage.load(STORAGE_CONS_KEY);
+            let consecutivo = 1;
+            if(consecutivos[part]){
+                consecutivo = parseInt("" + consecutivos[part]) + 1;
+            }
+            let serialNumber = "219256" + ("00000" + consecutivo).slice(-5); 
 
-                state.selectedProduct = state.selectedProduct,
                 state.previewData = {
                     partNumber: part,
                     name: name.replace(/^"|"$/g, ""),
                     plcCode: this.generatePLCCode(),
                     upcCode: upcCode,
-                    dateCode: generateDateCode()
+                    dateCode: generateDateCode(),
+                    serialNumber: serialNumber,
+                    consecutivo: consecutivo
                 }
-            
+                //alert("plcCode: " + state.previewData.plcCode);
         }
         function seleccionarPanel(panel){
             var el = document.getElementById("etiquetas");
@@ -199,7 +213,47 @@
                 }
             }
         }
+        function handlePLCDataArrived(data) {
+            // Implement this with PLC
+            let digit = data.toString('utf8');
 
+            digit = digit.replace(/\s/g, "");
+            digit = parseInt(digit);
+
+            if (digit === 1) {
+                this.plcCode = this.generatePLCCode();
+
+                // Avoid send to print when data satisfy the condition.
+                clearTimeout(this.plcDataTimer);
+                this.plcDataTimer = setTimeout(() => {
+                    console.log("%s", this.plcCode);
+
+                    this.handlePrintLabel();
+                    setTimeout(() => {
+                    this.ipcRenderer.send("print", el.innerHTML);
+                    this.plcCode = "";
+                    this.searcherRef.current.inputRef.current.focus();
+
+                    setTimeout(() => { el.parentNode.removeChild(el); }, 500);
+                }, 500);
+
+                // Increment on print.
+                this.setState(prevState => ({
+                    consecutive: (parseInt(prevState.consecutive) + 1) + ""
+                }))
+                    this.printSmallLabel();
+                }, 3000);
+            } else {
+                alert('Ocurrió un error al hacer la prueba del componente');
+            }
+        }
+
+        function printSmallLabel() {
+            if (this.ipcRenderer) {
+                // this.ipcRenderer.send('print-small', {plcCode: 'dummy-8844'});
+                this.ipcRenderer.send('print-small', {plcCode: this.state.previewData.plcCode});
+            }
+        }
         
         function generaEtiquetas(){
             if (this.state.selectedProduct) {
@@ -305,7 +359,7 @@
                     height: 50,
                     displayValue: false
                 });
-                JsBarcode("#formato3-t-plcCode1", previewData.plcCode, {
+                JsBarcode("#formato3-t-plcCode1", previewData.serialNumber, {
                     background: "transparent",
                     fontSize: 23,
                     fontOptions: "bold",
@@ -358,18 +412,7 @@
 
                 document.getElementById("formato1").style.display = "flex";
 
-                /*setTimeout(() => {
-                    this.ipcRenderer.send("print", el.innerHTML);
-                    this.plcCode = "";
-                    this.searcherRef.current.inputRef.current.focus();
-
-                    setTimeout(() => { el.parentNode.removeChild(el); }, 500);
-                }, 500);
-
-                // Increment on print.
-                this.setState(prevState => ({
-                    consecutive: (parseInt(prevState.consecutive) + 1) + ""
-                }));*/
+                /*;*/
             }
         }
         function seleccionarItem(){
@@ -471,11 +514,11 @@
                         <input  autocomplete="off" 
                                 name="product-name" 
                                 id = "productName"
-                                placeholder="Producto (Código, Nombre o Numero de parte)" 
+                                placeholder="(Código, Nombre o Numero de parte)(pulse enter para buscar)" 
                                 type="text" 
                                 value="" 
                                
-                                onkeyup = "presentarProductos(event)" />
+                                onchange = "presentarProductos(event)" />
                         <select id = "formato" onchange = "seleccionaEtiqueta()">
                             <option value = "formato1">Formato 1</option>
                             <option value = "formato2">Formato 2</option>
