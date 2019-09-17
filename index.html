@@ -22,12 +22,14 @@
     <script language = "javascript" src = "js/JsBarcode.all.min.js"></script>
     
     <script language = "javascript">
+        const ipcRenderer = require("electron").ipcRenderer;
         window.$ = window.jQuery = require('jquery');
         var state = null;
         var storage = null;
         var STORAGE_PRODUCTS_KEY = "LABEL_PRINTER_PRODUCTS";
         var STORAGE_LOG_KEY = "LABEL_PRINTER_LOG";
         var STORAGE_CONS_KEY = "CONSECUTIVOS";
+        var plcDataTimer = null;
 
         $( document ).ready(function() {
             console.log( "ready!" );
@@ -47,10 +49,12 @@
                 }
             }
         });
+
         function State(){
             this.products = [];
             this.noProducts = true;
             this.selectedProduct = null;
+            this.formatoSeleccionado = "formato1";
             this.previewData = {};
             this.seleccion = [];
             this.consecutive = 1;
@@ -63,19 +67,7 @@
 
         }
 
-        this.state = {
-            alerts: [],
-            noProducts: false,
-            invalidFile: false,
-            fileEmpty: false,
-            noProductFound: false,
-            noPLCFound: false,
-
-            consecutive: 1,
-            products: [],
-            selectedProduct: null,
-            previewData: { }
-        };
+       
         function abrirVisordeArchivos(){
             var ele = document.getElementById("fileName");
             document.getElementById("fileName").click();
@@ -113,7 +105,7 @@
         }
         function presentarProductos(event){
             value = event.target.value;
-            state.seleccion = this.state.products.filter(product => {
+            state.seleccion = state.products.filter(product => {
                 let part = product["Part Number"];
                 let desc = product["Up to 80 Character Manufacturer Description"];
                 let code = product["UPC (GTIN) Code"];
@@ -165,7 +157,7 @@
             let julianDay = getJulianDay().toString();
 
             // Get consecutive number
-            let consecutive = ("0000" + this.state.consecutive).slice(-5);
+            let consecutive = ("0000" + state.consecutive).slice(-5);
 
             // Return generated code
             return MEX_CODE + year + julianDay + consecutive;
@@ -177,7 +169,7 @@
             let anio = "" + date.getFullYear();
             return dia + mes + anio + "R"
         }
-        function generaDatosParaEtiquetas(){
+        function generaSiguienteEtiqueta(){
             let part = state.selectedProduct["Part Number"];
             let name = state.selectedProduct["Up to 80 Character Manufacturer Description"];
             let upcCode = state.selectedProduct["UPC (GTIN) Code"];
@@ -186,17 +178,33 @@
             if(consecutivos[part]){
                 consecutivo = parseInt("" + consecutivos[part]) + 1;
             }
+            consecutivos[part] = consecutivo;
+            storage.save(STORAGE_CONS_KEY, consecutivos);
+            setTimeout(generaEtiquetas(), 500);
+        }
+        function generaDatosParaEtiquetas(){
+            let part = state.selectedProduct["Part Number"];
+            let name = state.selectedProduct["Up to 80 Character Manufacturer Description"];
+            let upcCode = state.selectedProduct["UPC (GTIN) Code"];
+            let consecutivos = storage.load(STORAGE_CONS_KEY);
+            let consecutivo = 1;
+            if(consecutivos[part]){
+                consecutivo = parseInt("" + consecutivos[part]);
+            }
+            state.consecutive = consecutivo;
+            console.log("generando etiquetas para " + upcCode);
             let serialNumber = "219256" + ("00000" + consecutivo).slice(-5); 
 
                 state.previewData = {
                     partNumber: part,
                     name: name.replace(/^"|"$/g, ""),
-                    plcCode: this.generatePLCCode(),
+                    plcCode: generatePLCCode(),
                     upcCode: upcCode,
                     dateCode: generateDateCode(),
                     serialNumber: serialNumber,
                     consecutivo: consecutivo
                 }
+                console.log("generando etiquetas para " + state.previewData.plcCode);
                 //alert("plcCode: " + state.previewData.plcCode);
         }
         function seleccionarPanel(panel){
@@ -215,50 +223,64 @@
         }
         function handlePLCDataArrived(data) {
             // Implement this with PLC
+            //alert("llegando datos del plc: " + data);
             let digit = data.toString('utf8');
 
+            document.getElementById("statusPLC").innerHTML = "trama recibida: '" + digit + "'";
+            document.getElementById("statusPLC").style.backgroundColor = "#00ff00";
             digit = digit.replace(/\s/g, "");
             digit = parseInt(digit);
-
+            console.log("digit: " + digit + ", " + (digit === 1));
             if (digit === 1) {
-                this.plcCode = this.generatePLCCode();
+                console.log("marca 1 " + state.selectedProduct);
+                if(state.selectedProduct != null){
+                    console.log("marca 2");
+                    plcCode = generatePLCCode();
 
-                // Avoid send to print when data satisfy the condition.
-                clearTimeout(this.plcDataTimer);
-                this.plcDataTimer = setTimeout(() => {
-                    console.log("%s", this.plcCode);
+                    // Avoid send to print when data satisfy the condition.
+                    try{
+                        clearTimeout(plcDataTimer);
+                    }catch(error){
 
-                    this.handlePrintLabel();
-                    setTimeout(() => {
-                    this.ipcRenderer.send("print", el.innerHTML);
-                    this.plcCode = "";
-                    this.searcherRef.current.inputRef.current.focus();
+                    }
+                    plcDataTimer = setTimeout(() => {
+                        console.log("%s", plcCode);
+                        
+                        generaEtiquetas();
+                        setTimeout(() => {
+                        document.getElementById("statusPLC").innerHTML = "Imprimiedo etiqueta " + plcCode;
+                        document.getElementById("statusPLC").style.backgroundColor = "#ff0000";
+                        el = document.getElementById(state.formatoSeleccionado);
+                        ipcRenderer.send("print", el.innerHTML);
+                        generaSiguienteEtiqueta();
+                        //plcCode = "";
+                        //searcherRef.current.inputRef.current.focus();
 
-                    setTimeout(() => { el.parentNode.removeChild(el); }, 500);
-                }, 500);
+                        //setTimeout(() => { el.parentNode.removeChild(el); }, 500);
+                    }, 500);
 
-                // Increment on print.
-                this.setState(prevState => ({
-                    consecutive: (parseInt(prevState.consecutive) + 1) + ""
-                }))
-                    this.printSmallLabel();
-                }, 3000);
+                    // Increment on print.
+                    generaSiguienteEtiqueta();
+                    
+                        printSmallLabel();
+                    }, 3000);
+                }
             } else {
                 alert('Ocurrió un error al hacer la prueba del componente');
             }
         }
 
         function printSmallLabel() {
-            if (this.ipcRenderer) {
-                // this.ipcRenderer.send('print-small', {plcCode: 'dummy-8844'});
-                this.ipcRenderer.send('print-small', {plcCode: this.state.previewData.plcCode});
+            if (ipcRenderer) {
+                // ipcRenderer.send('print-small', {plcCode: 'dummy-8844'});
+                ipcRenderer.send('print-small', {plcCode: state.previewData.plcCode});
             }
         }
         
         function generaEtiquetas(){
-            if (this.state.selectedProduct) {
+            if (state.selectedProduct) {
                 generaDatosParaEtiquetas();
-                let previewData = this.state.previewData;
+                let previewData = state.previewData;
                 let el = document.getElementById("formato1");
                 let template = "";
                 template += "        <div class=\"side\">";
@@ -402,15 +424,22 @@
 
                 log.push({
                     "datetime": getDateUTCFormat(),
-                    "plccode": this.plcCode,
-                    "partnumber": this.state.previewData.partNumber,
-                    "upc": this.state.previewData.upcCode,
-                    "name": this.state.previewData.name
+                    "plccode": state.previewData.plcCode,
+                    "partnumber": state.previewData.partNumber,
+                    "upc": state.previewData.upcCode,
+                    "name": state.previewData.name
                 });
                 storage.save(STORAGE_LOG_KEY, log);
                 console.log('storing %o...', log);
+                setTimeout(() => {
+                //ipcRenderer.send("print", el.innerHTML);
+                plcCode = "";
+                //searcherRef.current.inputRef.current.focus();
 
-                document.getElementById("formato1").style.display = "flex";
+                //setTimeout(() => { seleccionarPanel("vacio"); }, 500);
+            }, 500);
+
+                document.getElementById(state.formatoSeleccionado).style.display = "flex";
 
                 /*;*/
             }
@@ -482,6 +511,7 @@
         }
         function seleccionaEtiqueta(){
            var formato = document.getElementById("formato").value;
+           state.formatoSeleccionado = formato;
            seleccionarPanel(formato);
         }
     </script>
@@ -529,10 +559,13 @@
                             <div id = "formato2" class = "Preview" style = ""></div>
                             <div id = "formato3" class = "Preview" style = ""></div>
                             <div id = "lista" class = "listProducts" style = "">&nbsp;</div>
+                            <div id = "vacio" class = "listProducts" style = "">&nbsp;</div>
                         </div>
+                        
 
                     </div>
                 </div>
+                <div id = "statusPLC" style = "background-color:#bbbbbb;text-align: center;font-weight: bolder;border-style:solid;border-width:1;">En espera de comunicación de puerto COM5</div>
                 <div class="Alert Alert-Error Alert-No-Visible">Tipo de archivo inválido, por favor carga un archivo con extensión CSV.</div>
                 <div class="Alert Alert-Error Alert-No-Visible">El archivo está vacío. Por favor carga un nuevo archivo.</div>
                 <div class="Alert Alert-Error Alert-No-Visible">No hay productos cargados.</div>
@@ -548,6 +581,6 @@
     
 </body>
 
-<script src="./renderer.js"></script>
+<script src="js/renderer.js"></script>
 
 </html>
