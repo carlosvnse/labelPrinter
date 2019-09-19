@@ -35,7 +35,7 @@ body{color:#333;font-family:Trebuchet MS,Helvetica,sans-serif;font-size:14px}
 @font-face{font-family:LibreBarcode39-Regular;src:url(/assets/fonts/libre_barcode_39/LibreBarcode39-Regular.ttf)}
 @font-face{font-family:LibreBarcode128-Regular;src:url(/assets/fonts/libre_barcode_128/LibreBarcode128-Regular.ttf)}
 #lista{align-items:center;display:none;font-size:2.1em;height:368px;margin-bottom:2%;max-width:580px;padding:.35em;width:100%;}
-.Preview{align-items:center;border:1px solid #000;border-radius:1em;display:none;font-size:2.1em;height:368px;margin-bottom:2%;max-width:580px;padding:.35em;width:100%;}
+.Preview{align-items:center;border:1px solid #000;border-radius:1em;display:none;font-size:2.1em;height:368px;margin-bottom:2%;max-width:580px;padding:.35em;}
 .Preview img{display:block;height:auto;max-width:100%}
 .Preview .info{margin-bottom:.8em}
 .Preview .part-number{font-weight:700}

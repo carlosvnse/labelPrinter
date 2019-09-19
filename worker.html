@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no">
+    <meta name="theme-color" content="#000000">
+    <link rel="shortcut icon" href="icon.ico">
+    <title>Label Printer</title>
+    <meta name="description" content="page-description">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#f1f1f1">
+    <meta name="msapplication-navbutton-color" content="#f1f1f1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link href="main.4760e1a2.chunk.css" rel="stylesheet">
+    <style>
+
+    </style>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+    <script language = "javascript" src = "js/utils.js"></script>
+    <script language = "javascript" src = "js/JsBarcode.all.min.js"></script>
+    
+    <script language = "javascript">
+        const ipcRenderer = require("electron").ipcRenderer;
+        window.$ = window.jQuery = require('jquery');
+        var state = null;
+        var storage = null;
+        var STORAGE_PRODUCTS_KEY = "LABEL_PRINTER_PRODUCTS";
+        var STORAGE_LOG_KEY = "LABEL_PRINTER_LOG";
+        var STORAGE_CONS_KEY = "CONSECUTIVOS";
+        var plcDataTimer = null;
+
+        $( document ).ready(function() {
+            console.log( "ready!" );
+            
+        });
+
+        
+    </script>
+</head>
+
+<body>
+                       <div id = "etiquetas" style = "height:368px;max-width:580px;"></div>
+     
+    
+</body>
+
+<script src="js/rendererWorker.js"></script>
+
+</html>

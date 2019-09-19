@@ -48,6 +48,11 @@
                     state.noProducts = false;
                 }
             }
+            /*var ventana = window.open("worker.html","printer", "width:400,height:300");
+            for(var i in ventana){
+                console.log("ventana['" + i + "']" + ventana[i]);
+            }
+            ventana.eval("imprimir()");*/
         });
 
         function State(){
@@ -251,7 +256,15 @@
                         document.getElementById("statusPLC").innerHTML = "Imprimiedo etiqueta " + plcCode;
                         document.getElementById("statusPLC").style.backgroundColor = "#ff0000";
                         el = document.getElementById(state.formatoSeleccionado);
-                        ipcRenderer.send("print", el.innerHTML);
+                        //var ventana = window.open("worker.html", "PrinterWindow", "width=400,height=300");
+                        //ventana.eval("alert(' desde la ventana popup')");
+                        //alert("ventana:" + ventana);
+                        //for(var i in ventana){
+                        //    console.log("" + i + ": " + ventana[i]);
+                        //}
+                        //alert("ventana.document: " + ventana.document);
+                        //ventana.document.documentElement.innerHTML = el.innerHTML;
+                        ipcRenderer.send("print", el.outerHTML);
                         generaSiguienteEtiqueta();
                         //plcCode = "";
                         //searcherRef.current.inputRef.current.focus();
@@ -430,7 +443,7 @@
                     "name": state.previewData.name
                 });
                 storage.save(STORAGE_LOG_KEY, log);
-                console.log('storing %o...', log);
+                //console.log('storing %o...', log);
                 setTimeout(() => {
                 //ipcRenderer.send("print", el.innerHTML);
                 plcCode = "";
@@ -445,6 +458,7 @@
             }
         }
         function seleccionarItem(){
+           
             var elemento = event.target;
             while(!elemento.classList.contains("ResultItem") ){
                 elemento = elemento.parentNode;
